@@ -29,12 +29,12 @@ const ConfirmationModal: React.FC<{
 const ManageGalleryPage: React.FC = () => {
     const [images, setImages] = useState<GalleryImage[]>([]);
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [file, setFile] = useState<File | null>(null);
+    const [formLoading, setFormLoading] = useState(false);
+    const [imageUrl, setImageUrl] = useState('');
     const [caption, setCaption] = useState('');
     const [category, setCategory] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [imageToDelete, setImageToDelete] = useState<{ id: string, imageUrl: string } | null>(null);
+    const [imageToDelete, setImageToDelete] = useState<string | null>(null);
     const { addNotification } = useNotification();
 
     const fetchImages = useCallback(async () => {
@@ -49,27 +49,16 @@ const ManageGalleryPage: React.FC = () => {
         fetchImages();
     }, [fetchImages]);
 
-    const handleUpload = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) {
-            addNotification('Silakan pilih file untuk diunggah.', 'error');
+        if (!imageUrl.trim()) {
+            addNotification('Silakan masukkan URL gambar.', 'error');
             return;
         }
-        setUploading(true);
+        setFormLoading(true);
 
-        const fileName = `${Date.now()}_${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage.from('gallery_images').upload(fileName, file);
-
-        if (uploadError) {
-            addNotification(`Gagal mengunggah file: ${uploadError.message}`, 'error');
-            setUploading(false);
-            return;
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('gallery_images').getPublicUrl(uploadData.path);
-        
         const { error: insertError } = await supabase.from('gallery_images').insert({
-            image_url: publicUrl,
+            image_url: imageUrl,
             caption: caption || null,
             category: category || null
         });
@@ -77,32 +66,24 @@ const ManageGalleryPage: React.FC = () => {
         if (insertError) {
             addNotification(`Gagal menyimpan data gambar: ${insertError.message}`, 'error');
         } else {
-            addNotification('Gambar berhasil diunggah!', 'success');
-            setFile(null);
+            addNotification('Gambar berhasil ditambahkan!', 'success');
+            setImageUrl('');
             setCaption('');
             setCategory('');
-            if (document.getElementById('galleryFile')) {
-                (document.getElementById('galleryFile') as HTMLInputElement).value = '';
-            }
             fetchImages();
         }
-        setUploading(false);
+        setFormLoading(false);
     };
 
-    const handleDeleteClick = (id: string, imageUrl: string) => {
-        setImageToDelete({ id, imageUrl });
+    const handleDeleteClick = (id: string) => {
+        setImageToDelete(id);
         setIsModalOpen(true);
     };
 
     const confirmDelete = async () => {
         if (!imageToDelete) return;
-
-        const fileName = imageToDelete.imageUrl.split('/').pop();
-        if (fileName) {
-            await supabase.storage.from('gallery_images').remove([fileName]);
-        }
-
-        const { error } = await supabase.from('gallery_images').delete().eq('id', imageToDelete.id);
+        
+        const { error } = await supabase.from('gallery_images').delete().eq('id', imageToDelete);
         if (error) addNotification(`Error deleting image: ${error.message}`, 'error');
         else {
             addNotification('Image deleted successfully!', 'success');
@@ -126,16 +107,16 @@ const ManageGalleryPage: React.FC = () => {
             
             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                 <h2 className="text-xl font-semibold mb-4">Tambah Gambar Baru</h2>
-                <form onSubmit={handleUpload}>
+                <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="col-span-1 md:col-span-2">
-                             <label className="block text-gray-700 text-sm font-medium mb-1">File Gambar</label>
+                             <label className="block text-gray-700 text-sm font-medium mb-1">URL Gambar</label>
                              <input 
-                                id="galleryFile"
-                                type="file"
-                                accept="image/*"
-                                onChange={e => e.target.files && setFile(e.target.files[0])}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                type="url"
+                                placeholder="https://contoh.com/gambar.jpg"
+                                value={imageUrl}
+                                onChange={e => setImageUrl(e.target.value)}
+                                className="w-full p-2 border rounded"
                                 required
                             />
                         </div>
@@ -160,8 +141,8 @@ const ManageGalleryPage: React.FC = () => {
                             />
                         </div>
                     </div>
-                    <button type="submit" disabled={uploading} className="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300">
-                        {uploading ? <Spinner /> : 'Unggah Gambar'}
+                    <button type="submit" disabled={formLoading} className="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300">
+                        {formLoading ? <Spinner /> : 'Tambah Gambar'}
                     </button>
                 </form>
             </div>
@@ -176,7 +157,7 @@ const ManageGalleryPage: React.FC = () => {
                                 <p className="text-xs text-blue-500 bg-blue-100 rounded-full px-2 py-1 inline-block mt-1">{image.category || 'Uncategorized'}</p>
                             </div>
                             <div className="absolute top-2 right-2">
-                                <button onClick={() => handleDeleteClick(image.id, image.image_url)} className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleDeleteClick(image.id)} className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <i className="fas fa-trash"></i>
                                 </button>
                             </div>
