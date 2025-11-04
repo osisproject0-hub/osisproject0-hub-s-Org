@@ -5,18 +5,18 @@ import Spinner from '../../components/Spinner';
 
 const ProgramForm: React.FC<{
     program: Partial<Program> | null;
-    onSave: (program: Partial<Program>, file: File | null) => void;
+    onSave: (program: Partial<Program>) => void;
     onCancel: () => void;
     loading: boolean;
 }> = ({ program, onSave, onCancel, loading }) => {
     const [title, setTitle] = useState(program?.title || '');
     const [description, setDescription] = useState(program?.description || '');
     const [date, setDate] = useState(program?.date || '');
-    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imageUrl, setImageUrl] = useState(program?.image_url || '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ id: program?.id, title, description, date }, imageFile);
+        onSave({ id: program?.id, title, description, date, image_url: imageUrl });
     };
 
     return (
@@ -37,8 +37,8 @@ const ProgramForm: React.FC<{
                         <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-2 border rounded h-32" required />
                     </div>
                     <div className="mb-4">
-                        <label className="block text-gray-700">Image</label>
-                        <input type="file" onChange={e => e.target.files && setImageFile(e.target.files[0])} className="w-full p-2 border rounded" accept="image/*" />
+                        <label className="block text-gray-700">Image URL</label>
+                        <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full p-2 border rounded" placeholder="https://example.com/image.png" />
                     </div>
                     <div className="flex justify-end gap-4">
                         <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
@@ -72,23 +72,15 @@ const ManageProgramsPage: React.FC = () => {
         fetchPrograms();
     }, [fetchPrograms]);
 
-    const handleSave = async (program: Partial<Program>, file: File | null) => {
+    const handleSave = async (program: Partial<Program>) => {
         setFormLoading(true);
-        let imageUrl = program.image_url || null;
-
-        if (file) {
-            const fileName = `${Date.now()}_${file.name}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage.from('program-images').upload(fileName, file);
-            if (uploadError) {
-                alert('Error uploading image: ' + uploadError.message);
-                setFormLoading(false);
-                return;
-            }
-            const { data: { publicUrl } } = supabase.storage.from('program-images').getPublicUrl(uploadData.path);
-            imageUrl = publicUrl;
-        }
-
-        const programData = { ...program, image_url: imageUrl };
+        
+        const programData = {
+            title: program.title,
+            description: program.description,
+            date: program.date,
+            image_url: program.image_url || null
+        };
 
         if (program.id) {
             const { error } = await supabase.from('programs').update(programData).eq('id', program.id);

@@ -7,9 +7,9 @@ const ManageGalleryPage: React.FC = () => {
     const [images, setImages] = useState<GalleryImage[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [imageUrl, setImageUrl] = useState('');
     const [caption, setCaption] = useState('');
     const [category, setCategory] = useState('');
-    const [file, setFile] = useState<File | null>(null);
 
     const fetchImages = useCallback(async () => {
         setLoading(true);
@@ -25,25 +25,14 @@ const ManageGalleryPage: React.FC = () => {
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) {
-            alert('Please select an image to upload.');
+        if (!imageUrl.trim()) {
+            alert('Please provide an image URL.');
             return;
         }
         setUploading(true);
 
-        const fileName = `${Date.now()}_${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage.from('gallery-images').upload(fileName, file);
-
-        if (uploadError) {
-            alert('Error uploading image: ' + uploadError.message);
-            setUploading(false);
-            return;
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('gallery-images').getPublicUrl(uploadData.path);
-        
         const { error: insertError } = await supabase.from('gallery_images').insert({
-            image_url: publicUrl,
+            image_url: imageUrl,
             caption: caption || null,
             category: category || null
         });
@@ -51,10 +40,9 @@ const ManageGalleryPage: React.FC = () => {
         if (insertError) {
             alert('Error saving image data: ' + insertError.message);
         } else {
+            setImageUrl('');
             setCaption('');
             setCategory('');
-            setFile(null);
-            (document.getElementById('imageFile') as HTMLInputElement).value = '';
             fetchImages();
         }
         setUploading(false);
@@ -62,14 +50,6 @@ const ManageGalleryPage: React.FC = () => {
 
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this image?')) {
-            const imageToDelete = images.find(img => img.id === id);
-            if (imageToDelete) {
-                const fileName = imageToDelete.image_url.split('/').pop();
-                if (fileName) {
-                    await supabase.storage.from('gallery-images').remove([fileName]);
-                }
-            }
-            
             const { error } = await supabase.from('gallery_images').delete().eq('id', id);
             if (error) alert('Error deleting image: ' + error.message);
             else fetchImages();
@@ -81,15 +61,15 @@ const ManageGalleryPage: React.FC = () => {
             <h1 className="text-3xl font-bold mb-6">Manage Galeri</h1>
             
             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                <h2 className="text-xl font-semibold mb-4">Upload New Image</h2>
+                <h2 className="text-xl font-semibold mb-4">Add New Image</h2>
                 <form onSubmit={handleUpload}>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                         <input 
-                            id="imageFile"
-                            type="file" 
-                            onChange={e => e.target.files && setFile(e.target.files[0])} 
-                            className="col-span-1 p-2 border rounded" 
-                            accept="image/*"
+                            type="text"
+                            placeholder="Image URL"
+                            value={imageUrl}
+                            onChange={e => setImageUrl(e.target.value)}
+                            className="col-span-1 md:col-span-2 p-2 border rounded"
                             required
                         />
                         <input 
@@ -106,8 +86,8 @@ const ManageGalleryPage: React.FC = () => {
                             onChange={e => setCategory(e.target.value)}
                             className="col-span-1 p-2 border rounded"
                         />
-                        <button type="submit" disabled={uploading} className="col-span-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300">
-                            {uploading ? <Spinner /> : 'Upload'}
+                        <button type="submit" disabled={uploading} className="col-span-1 md:col-span-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300 mt-2">
+                            {uploading ? <Spinner /> : 'Add Image'}
                         </button>
                     </div>
                 </form>

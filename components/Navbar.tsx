@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const { settings, loading } = useSiteSettings();
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +31,9 @@ const Navbar: React.FC = () => {
         : 'text-gray-700 hover:bg-blue-500 hover:text-white'
     }`;
 
+  const logoUrl = settings['logo_url'] || 'https://i.imgur.com/g826EZG.png';
+  const orgName = settings['org_name_short'] || 'OSIS SMK LPPMRI 2';
+
   return (
     <nav className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,8 +41,8 @@ const Navbar: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
                <div className="flex items-center space-x-2">
-                 <img className="h-10 w-10" src="https://i.imgur.com/g826EZG.png" alt="OSIS Logo" />
-                 <span className="font-bold text-xl text-blue-600 hidden sm:inline">OSIS SMK LPPMRI 2</span>
+                 <img className="h-10 w-10" src={logoUrl} alt="OSIS Logo" />
+                 <span className="font-bold text-xl text-blue-600 hidden sm:inline">{orgName}</span>
                </div>
             </Link>
           </div>
@@ -46,6 +51,7 @@ const Navbar: React.FC = () => {
               <NavLink to="/" className={navLinkClass}>Home</NavLink>
               <NavLink to="/about" className={navLinkClass}>Tentang</NavLink>
               <NavLink to="/programs" className={navLinkClass}>Program</NavLink>
+              <NavLink to="/agenda" className={navLinkClass}>Agenda</NavLink>
               <NavLink to="/blog" className={navLinkClass}>Berita</NavLink>
               <NavLink to="/gallery" className={navLinkClass}>Galeri</NavLink>
               <NavLink to="/polls" className={navLinkClass}>Polling</NavLink>
@@ -107,6 +113,7 @@ const Navbar: React.FC = () => {
             <NavLink to="/" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Home</NavLink>
             <NavLink to="/about" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Tentang</NavLink>
             <NavLink to="/programs" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Program</NavLink>
+            <NavLink to="/agenda" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Agenda</NavLink>
             <NavLink to="/blog" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Berita</NavLink>
             <NavLink to="/gallery" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Galeri</NavLink>
             <NavLink to="/polls" className={mobileNavLinkClass} onClick={() => setIsOpen(false)}>Polling</NavLink>

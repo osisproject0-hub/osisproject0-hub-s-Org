@@ -6,7 +6,7 @@ import Spinner from '../../components/Spinner';
 // Define PostForm outside to prevent re-declaration on every render
 const PostForm: React.FC<{
     post: Partial<Post> | null;
-    onSave: (post: Partial<Post>, file: File | null) => void;
+    onSave: (post: Partial<Post>) => void;
     onCancel: () => void;
     loading: boolean;
 }> = ({ post, onSave, onCancel, loading }) => {
@@ -14,11 +14,11 @@ const PostForm: React.FC<{
     const [content, setContent] = useState(post?.content || '');
     const [author, setAuthor] = useState(post?.author || 'Admin');
     const [category, setCategory] = useState(post?.category || '');
-    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imageUrl, setImageUrl] = useState(post?.image_url || '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ id: post?.id, title, content, author, category }, imageFile);
+        onSave({ id: post?.id, title, content, author, category, image_url: imageUrl });
     };
 
     return (
@@ -45,8 +45,8 @@ const PostForm: React.FC<{
                         <textarea value={content} onChange={e => setContent(e.target.value)} className="w-full p-2 border rounded h-40" required />
                     </div>
                     <div className="mb-4">
-                        <label className="block text-gray-700">Image</label>
-                        <input type="file" onChange={e => e.target.files && setImageFile(e.target.files[0])} className="w-full p-2 border rounded" accept="image/*" />
+                        <label className="block text-gray-700">Image URL</label>
+                        <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full p-2 border rounded" placeholder="https://example.com/image.png" />
                     </div>
                     <div className="flex justify-end gap-4">
                         <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
@@ -79,23 +79,16 @@ const ManageBlogPage: React.FC = () => {
         fetchPosts();
     }, [fetchPosts]);
 
-    const handleSave = async (post: Partial<Post>, file: File | null) => {
+    const handleSave = async (post: Partial<Post>) => {
         setFormLoading(true);
-        let imageUrl = post.image_url || null;
-
-        if (file) {
-            const fileName = `${Date.now()}_${file.name}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage.from('post-images').upload(fileName, file);
-            if (uploadError) {
-                alert('Error uploading image: ' + uploadError.message);
-                setFormLoading(false);
-                return;
-            }
-            const { data: { publicUrl } } = supabase.storage.from('post-images').getPublicUrl(uploadData.path);
-            imageUrl = publicUrl;
-        }
-
-        const postData = { ...post, image_url: imageUrl };
+        
+        const postData = { 
+            title: post.title,
+            content: post.content,
+            author: post.author,
+            category: post.category,
+            image_url: post.image_url || null 
+        };
 
         if (post.id) {
             const { error } = await supabase.from('posts').update(postData).eq('id', post.id);

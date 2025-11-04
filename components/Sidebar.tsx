@@ -64,9 +64,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             <i className="fas fa-poll w-6 h-6 mr-3"></i>
             Manage Polling
           </NavLink>
+          <NavLink to="/admin/testimonials" className={navLinkClass} onClick={handleLinkClick}>
+            <i className="fas fa-comment-alt w-6 h-6 mr-3"></i>
+            Manage Testimoni
+          </NavLink>
           <NavLink to="/admin/feedback" className={navLinkClass} onClick={handleLinkClick}>
             <i className="fas fa-inbox w-6 h-6 mr-3"></i>
             Feedback
+          </NavLink>
+          <NavLink to="/admin/settings" className={navLinkClass} onClick={handleLinkClick}>
+            <i className="fas fa-cog w-6 h-6 mr-3"></i>
+            Pengaturan Website
           </NavLink>
         </nav>
       </div>

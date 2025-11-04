@@ -271,6 +271,54 @@ export interface Database {
           }
         ]
       }
+      site_settings: {
+        Row: {
+          id: string
+          value: string
+          label: string
+          group: string
+        }
+        Insert: {
+          id: string
+          value: string
+          label: string
+          group: string
+        }
+        Update: {
+          id?: string
+          value?: string
+          label?: string
+          group?: string
+        }
+        Relationships: []
+      }
+      testimonials: {
+        Row: {
+          id: string
+          quote: string
+          author: string
+          role: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          quote: string
+          author: string
+          role?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          quote?: string
+          author?: string
+          role?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -308,3 +356,5 @@ export type Document = Database['public']['Tables']['documents']['Row'];
 export type Faq = Database['public']['Tables']['faqs']['Row'];
 export type Poll = Database['public']['Tables']['polls']['Row'] & { poll_options: PollOption[] };
 export type PollOption = Database['public']['Tables']['poll_options']['Row'];
+export type SiteSetting = Database['public']['Tables']['site_settings']['Row'];
+export type Testimonial = Database['public']['Tables']['testimonials']['Row'];

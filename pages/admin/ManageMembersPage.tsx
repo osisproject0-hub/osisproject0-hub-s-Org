@@ -6,17 +6,17 @@ import Spinner from '../../components/Spinner';
 // Member Form Component
 const MemberForm: React.FC<{
     member: Partial<Member> | null;
-    onSave: (member: Partial<Member>, file: File | null) => void;
+    onSave: (member: Partial<Member>) => void;
     onCancel: () => void;
     loading: boolean;
 }> = ({ member, onSave, onCancel, loading }) => {
     const [name, setName] = useState(member?.name || '');
     const [position, setPosition] = useState(member?.position || '');
-    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [photoUrl, setPhotoUrl] = useState(member?.photo_url || '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ id: member?.id, name, position, photo_url: member?.photo_url }, imageFile);
+        onSave({ id: member?.id, name, position, photo_url: photoUrl });
     };
 
     return (
@@ -33,8 +33,8 @@ const MemberForm: React.FC<{
                         <input type="text" value={position} onChange={e => setPosition(e.target.value)} className="w-full p-2 border rounded" required />
                     </div>
                     <div className="mb-4">
-                        <label className="block text-gray-700">Foto</label>
-                        <input type="file" onChange={e => e.target.files && setImageFile(e.target.files[0])} className="w-full p-2 border rounded" accept="image/*" />
+                        <label className="block text-gray-700">Photo URL</label>
+                        <input type="text" value={photoUrl} onChange={e => setPhotoUrl(e.target.value)} className="w-full p-2 border rounded" placeholder="https://example.com/photo.png"/>
                     </div>
                     <div className="flex justify-end gap-4">
                         <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Batal</button>
@@ -68,23 +68,14 @@ const ManageMembersPage: React.FC = () => {
         fetchMembers();
     }, [fetchMembers]);
 
-    const handleSave = async (member: Partial<Member>, file: File | null) => {
+    const handleSave = async (member: Partial<Member>) => {
         setFormLoading(true);
-        let imageUrl = member.photo_url || null;
 
-        if (file) {
-            const fileName = `member_${Date.now()}_${file.name}`;
-            const { data: uploadData, error: uploadError } = await supabase.storage.from('member-photos').upload(fileName, file);
-            if (uploadError) {
-                alert('Error uploading image: ' + uploadError.message);
-                setFormLoading(false);
-                return;
-            }
-            const { data: { publicUrl } } = supabase.storage.from('member-photos').getPublicUrl(uploadData.path);
-            imageUrl = publicUrl;
-        }
-
-        const memberData = { ...member, photo_url: imageUrl };
+        const memberData = { 
+            name: member.name,
+            position: member.position,
+            photo_url: member.photo_url || null
+        };
 
         if (member.id) {
             const { error } = await supabase.from('members').update(memberData).eq('id', member.id);

@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from './services/supabase';
+import { SiteSettingsProvider } from './hooks/useSiteSettings';
 
 // Layouts
 import Layout from './components/Layout';
@@ -35,6 +36,8 @@ import FeedbackPage from './pages/admin/FeedbackPage';
 import ManageDocumentsPage from './pages/admin/ManageDocumentsPage';
 import ManageFaqsPage from './pages/admin/ManageFaqsPage';
 import ManagePollsPage from './pages/admin/ManagePollsPage';
+import ManageSettingsPage from './pages/admin/ManageSettingsPage';
+import ManageTestimonialsPage from './pages/admin/ManageTestimonialsPage';
 
 
 function App() {
@@ -69,47 +72,51 @@ function App() {
   }
 
   return (
-    <HashRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="about" element={<AboutPage />} />
-          <Route path="programs" element={<ProgramsPage />} />
-          <Route path="agenda" element={<AgendaPage />} />
-          <Route path="blog" element={<BlogPage />} />
-          <Route path="blog/:id" element={<BlogPostPage />} />
-          <Route path="gallery" element={<GalleryPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="faq" element={<FaqPage />} />
-          <Route path="polls" element={<PollsPage />} />
-          <Route path="contact" element={<ContactPage />} />
-          <Route path="search" element={<SearchResultsPage />} />
-        </Route>
+    <SiteSettingsProvider>
+      <HashRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="programs" element={<ProgramsPage />} />
+            <Route path="agenda" element={<AgendaPage />} />
+            <Route path="blog" element={<BlogPage />} />
+            <Route path="blog/:id" element={<BlogPostPage />} />
+            <Route path="gallery" element={<GalleryPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
+            <Route path="faq" element={<FaqPage />} />
+            <Route path="polls" element={<PollsPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="search" element={<SearchResultsPage />} />
+          </Route>
 
-        <Route path="/admin/login" element={<LoginPage />} />
-        
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute session={session}>
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="blog" element={<ManageBlogPage />} />
-          <Route path="programs" element={<ManageProgramsPage />} />
-          <Route path="agenda" element={<ManageAgendaPage />} />
-          <Route path="gallery" element={<ManageGalleryPage />} />
-          <Route path="members" element={<ManageMembersPage />} />
-          <Route path="documents" element={<ManageDocumentsPage />} />
-          <Route path="faqs" element={<ManageFaqsPage />} />
-          <Route path="polls" element={<ManagePollsPage />} />
-          <Route path="feedback" element={<FeedbackPage />} />
-        </Route>
-      </Routes>
-    </HashRouter>
+          <Route path="/admin/login" element={<LoginPage />} />
+          
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute session={session}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="blog" element={<ManageBlogPage />} />
+            <Route path="programs" element={<ManageProgramsPage />} />
+            <Route path="agenda" element={<ManageAgendaPage />} />
+            <Route path="gallery" element={<ManageGalleryPage />} />
+            <Route path="members" element={<ManageMembersPage />} />
+            <Route path="documents" element={<ManageDocumentsPage />} />
+            <Route path="faqs" element={<ManageFaqsPage />} />
+            <Route path="polls" element={<ManagePollsPage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
+            <Route path="testimonials" element={<ManageTestimonialsPage />} />
+            <Route path="settings" element={<ManageSettingsPage />} />
+          </Route>
+        </Routes>
+      </HashRouter>
+    </SiteSettingsProvider>
   );
 }
 

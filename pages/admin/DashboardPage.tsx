@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabase';
+import { Link } from 'react-router-dom';
+import type { Feedback } from '../../types';
 
 const DashboardPage: React.FC = () => {
     const [counts, setCounts] = useState({ posts: 0, programs: 0, images: 0, members: 0, feedback: 0, documents: 0, faqs: 0, polls: 0 });
+    const [latestFeedback, setLatestFeedback] = useState<Feedback[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -15,7 +18,7 @@ const DashboardPage: React.FC = () => {
             const { count: documentsCount } = await supabase.from('documents').select('*', { count: 'exact', head: true });
             const { count: faqsCount } = await supabase.from('faqs').select('*', { count: 'exact', head: true });
             const { count: pollsCount } = await supabase.from('polls').select('*', { count: 'exact', head: true }).eq('is_active', true);
-            const { count: feedbackCount } = await supabase.from('feedback').select('*', { count: 'exact', head: true }).eq('is_read', false);
+            const { count: feedbackCount, data: feedbackData } = await supabase.from('feedback').select('*', { count: 'exact' }).eq('is_read', false).order('created_at', { ascending: false }).limit(3);
             
             setCounts({
                 posts: postsCount || 0,
@@ -27,6 +30,8 @@ const DashboardPage: React.FC = () => {
                 polls: pollsCount || 0,
                 feedback: feedbackCount || 0,
             });
+            if (feedbackData) setLatestFeedback(feedbackData);
+
             setLoading(false);
         };
         fetchData();
@@ -59,9 +64,27 @@ const DashboardPage: React.FC = () => {
                 <StatCard icon="fa-poll" label="Polling Aktif" value={counts.polls} color="bg-teal-100 text-teal-500" />
                 <StatCard icon="fa-inbox" label="Feedback Baru" value={counts.feedback} color="bg-red-100 text-red-500" />
             </div>
-            <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-800">Selamat Datang di Panel Admin</h2>
-                <p className="mt-2 text-gray-600">Gunakan menu di samping untuk mengelola konten website OSIS SMK LPPMRI 2 Kedungreja. Anda dapat menambah, mengubah, dan menghapus berita, program kerja, dan foto galeri.</p>
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-semibold text-gray-800">Selamat Datang di Panel Admin</h2>
+                    <p className="mt-2 text-gray-600">Gunakan menu di samping untuk mengelola konten website OSIS SMK LPPMRI 2 Kedungreja. Anda dapat menambah, mengubah, dan menghapus berita, program kerja, dan foto galeri.</p>
+                </div>
+                 <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-semibold text-gray-800">Feedback Terbaru</h2>
+                    {loading ? <p className="text-gray-600 mt-2">Memuat...</p> : latestFeedback.length > 0 ? (
+                        <ul className="mt-2 space-y-3">
+                            {latestFeedback.map(fb => (
+                                <li key={fb.id} className="border-b pb-2 last:border-b-0">
+                                    <p className="font-semibold">{fb.name}</p>
+                                    <p className="text-gray-600 text-sm truncate">{fb.message}</p>
+                                </li>
+                            ))}
+                             <Link to="/admin/feedback" className="text-blue-500 hover:underline mt-4 inline-block">Lihat semua feedback</Link>
+                        </ul>
+                    ) : (
+                        <p className="mt-2 text-gray-600">Tidak ada feedback baru.</p>
+                    )}
+                </div>
             </div>
         </div>
     );
