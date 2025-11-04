@@ -14,6 +14,7 @@ const SkeletonLoader: React.FC<{ className?: string }> = ({ className }) => (
 const AboutPage: React.FC = () => {
   const [divisions, setDivisions] = useState<DivisionWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const { settings } = useSiteSettings();
 
   useEffect(() => {
@@ -143,15 +144,15 @@ const AboutPage: React.FC = () => {
                     {division.description && <p className="text-gray-500 mt-2 mb-8 max-w-xl mx-auto">{division.description}</p>}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10 mt-4">
                       {division.members.map((member) => (
-                        <div key={member.id} className="text-center group">
+                        <button key={member.id} className="text-center group focus:outline-none" onClick={() => setSelectedMember(member)}>
                           <img 
-                            className="w-28 h-28 mx-auto rounded-full shadow-lg object-cover transform group-hover:scale-110 transition-transform duration-300" 
+                            className="w-28 h-28 mx-auto rounded-full shadow-lg object-cover transform group-hover:scale-110 transition-transform duration-300 cursor-pointer" 
                             src={member.photo_url || `https://i.pravatar.cc/150?u=${member.id}`} 
                             alt={member.name} 
                           />
                           <h4 className="mt-4 text-lg font-semibold text-gray-800">{member.name}</h4>
                           <p className="text-sm text-blue-500 font-medium">{member.position}</p>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -161,6 +162,37 @@ const AboutPage: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {selectedMember && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 animate-fade-in"
+            onClick={() => setSelectedMember(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="member-name"
+          >
+            <div 
+              className="bg-white rounded-lg shadow-2xl p-4 max-w-lg w-full text-center relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setSelectedMember(null)}
+                className="absolute top-2 right-2 bg-gray-200 text-gray-700 rounded-full h-8 w-8 flex items-center justify-center text-xl z-10 hover:bg-gray-300 transition-colors"
+                aria-label="Tutup"
+              >
+                &times;
+              </button>
+              <img 
+                src={selectedMember.photo_url || `https://i.pravatar.cc/500?u=${selectedMember.id}`} 
+                alt={selectedMember.name} 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg mx-auto"
+              />
+              <h3 id="member-name" className="mt-4 text-2xl font-bold text-gray-800">{selectedMember.name}</h3>
+              <p className="text-md text-blue-600 font-semibold">{selectedMember.position}</p>
+            </div>
+          </div>
+        )}
+
     </div>
   );
 };
