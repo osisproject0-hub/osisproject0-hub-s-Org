@@ -8,15 +8,12 @@ const GalleryPage: React.FC = () => {
     const [categories, setCategories] = useState<string[]>([]);
     const [activeCategory, setActiveCategory] = useState<string>('All');
     const [loading, setLoading] = useState(true);
-    const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchImagesAndCategories = async () => {
             setLoading(true);
-            
-            let query = supabase.from('gallery_images').select('*').order('created_at', { ascending: false });
-            
-            const { data, error } = await query;
+            const { data, error } = await supabase.from('gallery_images').select('*').order('created_at', { ascending: false });
 
             if (data) {
                 setImages(data);
@@ -32,10 +29,37 @@ const GalleryPage: React.FC = () => {
     const filteredImages = activeCategory === 'All' 
         ? images 
         : images.filter(image => image.category === activeCategory);
+
+    const openModal = (index: number) => setSelectedImageIndex(index);
+    const closeModal = () => setSelectedImageIndex(null);
     
-    const closeModal = () => {
-        setSelectedImage(null);
+    const showNextImage = () => {
+      if (selectedImageIndex !== null) {
+        setSelectedImageIndex((selectedImageIndex + 1) % filteredImages.length);
+      }
     };
+
+    const showPrevImage = () => {
+        if (selectedImageIndex !== null) {
+            setSelectedImageIndex((selectedImageIndex - 1 + filteredImages.length) % filteredImages.length);
+        }
+    };
+    
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (selectedImageIndex === null) return;
+            if (e.key === 'ArrowRight') showNextImage();
+            if (e.key === 'ArrowLeft') showPrevImage();
+            if (e.key === 'Escape') closeModal();
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [selectedImageIndex, filteredImages]);
+
+    const selectedImage = selectedImageIndex !== null ? filteredImages[selectedImageIndex] : null;
 
     return (
         <div className="bg-gray-50">
@@ -59,8 +83,8 @@ const GalleryPage: React.FC = () => {
 
                 {loading ? <Spinner /> : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {filteredImages.map((image) => (
-                            <div key={image.id} className="group relative cursor-pointer overflow-hidden rounded-lg" onClick={() => setSelectedImage(image)}>
+                        {filteredImages.map((image, index) => (
+                            <div key={image.id} className="group relative cursor-pointer overflow-hidden rounded-lg" onClick={() => openModal(index)}>
                                 <img 
                                     src={image.image_url} 
                                     alt={image.caption || 'Gallery image'}
@@ -77,8 +101,12 @@ const GalleryPage: React.FC = () => {
 
             {selectedImage && (
                 <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={closeModal}>
+                    <button onClick={closeModal} className="absolute top-4 right-4 bg-white text-black rounded-full h-10 w-10 flex items-center justify-center text-2xl z-50 hover:bg-gray-200 transition-colors" aria-label="Close">&times;</button>
+                    
+                    <button onClick={(e) => { e.stopPropagation(); showPrevImage(); }} className="absolute left-4 md:left-10 text-white text-4xl z-50 hover:opacity-75 transition-opacity" aria-label="Previous image"><i className="fas fa-chevron-left"></i></button>
+                    <button onClick={(e) => { e.stopPropagation(); showNextImage(); }} className="absolute right-4 md:right-10 text-white text-4xl z-50 hover:opacity-75 transition-opacity" aria-label="Next image"><i className="fas fa-chevron-right"></i></button>
+
                     <div className="relative max-w-4xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={closeModal} className="absolute -top-10 -right-2 md:-top-4 md:-right-10 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center text-2xl z-10">&times;</button>
                         <img src={selectedImage.image_url} alt={selectedImage.caption || 'Enlarged view'} className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"/>
                         {selectedImage.caption && <p className="text-white text-center mt-4 bg-black/50 p-2 rounded-md">{selectedImage.caption}</p>}
                     </div>

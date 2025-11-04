@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import type { Post } from '../../types';
-import Spinner from '../../components/Spinner';
+
+const SkeletonLoader: React.FC<{ className?: string }> = ({ className }) => (
+    <div className={`bg-gray-200 rounded-md animate-pulse ${className}`}></div>
+);
 
 const BlogPage: React.FC = () => {
     const [posts, setPosts] = useState<Post[]>([]);
@@ -46,16 +49,30 @@ const BlogPage: React.FC = () => {
                         <button 
                             key={category}
                             onClick={() => setActiveCategory(category)}
-                            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors duration-300 ${activeCategory === category ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-blue-100'}`}
+                            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors duration-300 ${activeCategory === category ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-100'}`}
                         >
                             {category}
                         </button>
                     ))}
                 </div>
 
-                {loading ? <Spinner /> : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {filteredPosts.map(post => (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {loading ? (
+                         Array.from({ length: 6 }).map((_, index) => (
+                            <div key={index} className="bg-gray-50 rounded-lg shadow-lg overflow-hidden flex flex-col">
+                                <SkeletonLoader className="h-56 w-full" />
+                                <div className="p-6 flex-grow">
+                                    <SkeletonLoader className="h-4 w-1/4 mb-4" />
+                                    <SkeletonLoader className="h-6 w-full mb-2" />
+                                    <SkeletonLoader className="h-4 w-1/2 mb-4" />
+                                    <SkeletonLoader className="h-4 w-full mb-2" />
+                                    <SkeletonLoader className="h-4 w-3/4 mb-4" />
+                                    <SkeletonLoader className="h-5 w-1/3" />
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        filteredPosts.map(post => (
                              <div key={post.id} className="bg-gray-50 rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 flex flex-col">
                                 <Link to={`/blog/${post.id}`}>
                                   <img className="h-56 w-full object-cover" src={post.image_url || 'https://picsum.photos/seed/blog/400/300'} alt={post.title} />
@@ -72,9 +89,9 @@ const BlogPage: React.FC = () => {
                                     </Link>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );

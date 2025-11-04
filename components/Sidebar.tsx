@@ -52,6 +52,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             <i className="fas fa-users w-6 h-6 mr-3"></i>
             Manage Anggota
           </NavLink>
+          <NavLink to="/admin/divisions" className={navLinkClass} onClick={handleLinkClick}>
+            <i className="fas fa-sitemap w-6 h-6 mr-3"></i>
+            Manage Divisi
+          </NavLink>
            <NavLink to="/admin/documents" className={navLinkClass} onClick={handleLinkClick}>
             <i className="fas fa-file-alt w-6 h-6 mr-3"></i>
             Manage Dokumen

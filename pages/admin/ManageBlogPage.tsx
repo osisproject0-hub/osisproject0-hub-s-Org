@@ -2,6 +2,29 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabase';
 import type { Post } from '../../types';
 import Spinner from '../../components/Spinner';
+import { useNotification } from '../../App';
+
+const ConfirmationModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+}> = ({ isOpen, onClose, onConfirm, title, message }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <h2 className="text-xl font-bold mb-4">{title}</h2>
+                <p className="text-gray-600 mb-6">{message}</p>
+                <div className="flex justify-end gap-4">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Batal</button>
+                    <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Konfirmasi</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // Define PostForm outside to prevent re-declaration on every render
 const PostForm: React.FC<{
@@ -43,6 +66,7 @@ const PostForm: React.FC<{
                     <div className="mb-4">
                         <label className="block text-gray-700">Content</label>
                         <textarea value={content} onChange={e => setContent(e.target.value)} className="w-full p-2 border rounded h-40" required />
+                        <p className="text-xs text-gray-500 mt-1">Anda dapat menggunakan format Markdown untuk styling teks.</p>
                     </div>
                     <div className="mb-4">
                         <label className="block text-gray-700">Image URL</label>
@@ -66,14 +90,17 @@ const ManageBlogPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingPost, setEditingPost] = useState<Partial<Post> | null>(null);
     const [formLoading, setFormLoading] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [postToDelete, setPostToDelete] = useState<string | null>(null);
+    const { addNotification } = useNotification();
 
     const fetchPosts = useCallback(async () => {
         setLoading(true);
         const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
         if (data) setPosts(data);
-        if (error) console.error("Error fetching posts:", error);
+        if (error) addNotification(`Error fetching posts: ${error.message}`, 'error');
         setLoading(false);
-    }, []);
+    }, [addNotification]);
 
     useEffect(() => {
         fetchPosts();
@@ -92,10 +119,12 @@ const ManageBlogPage: React.FC = () => {
 
         if (post.id) {
             const { error } = await supabase.from('posts').update(postData).eq('id', post.id);
-            if (error) alert('Error updating post: ' + error.message);
+            if (error) addNotification(`Error updating post: ${error.message}`, 'error');
+            else addNotification('Post updated successfully!', 'success');
         } else {
             const { error } = await supabase.from('posts').insert(postData);
-            if (error) alert('Error creating post: ' + error.message);
+            if (error) addNotification(`Error creating post: ${error.message}`, 'error');
+            else addNotification('Post created successfully!', 'success');
         }
         
         setFormLoading(false);
@@ -104,20 +133,36 @@ const ManageBlogPage: React.FC = () => {
         fetchPosts();
     };
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this post?')) {
-            const { error } = await supabase.from('posts').delete().eq('id', id);
-            if (error) alert('Error deleting post: ' + error.message);
-            else fetchPosts();
+    const handleDeleteClick = (id: string) => {
+        setPostToDelete(id);
+        setIsModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!postToDelete) return;
+        const { error } = await supabase.from('posts').delete().eq('id', postToDelete);
+        if (error) addNotification(`Error deleting post: ${error.message}`, 'error');
+        else {
+            addNotification('Post deleted successfully!', 'success');
+            fetchPosts();
         }
+        setIsModalOpen(false);
+        setPostToDelete(null);
     };
 
     return (
         <div>
+            <ConfirmationModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="Konfirmasi Hapus"
+                message="Apakah Anda yakin ingin menghapus post ini secara permanen?"
+            />
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">Manage Berita</h1>
                 <button onClick={() => { setEditingPost(null); setShowForm(true); }} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                    Create New Post
+                    <i className="fas fa-plus mr-2"></i>Buat Post Baru
                 </button>
             </div>
             {loading ? <Spinner /> : (
@@ -141,7 +186,7 @@ const ManageBlogPage: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(post.created_at).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button onClick={() => { setEditingPost(post); setShowForm(true); }} className="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
-                                        <button onClick={() => handleDelete(post.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                                        <button onClick={() => handleDeleteClick(post.id)} className="text-red-600 hover:text-red-900">Delete</button>
                                     </td>
                                 </tr>
                             ))}

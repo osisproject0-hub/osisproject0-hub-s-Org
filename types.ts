@@ -9,6 +9,30 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      divisions: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          display_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          display_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          display_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           id: string
@@ -59,6 +83,40 @@ export interface Database {
           created_at?: string
         }
         Relationships: []
+      }
+      event_registrations: {
+        Row: {
+          id: string
+          event_id: string
+          name: string
+          class: string
+          email: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          name: string
+          class: string
+          email: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          name?: string
+          class?: string
+          email?: string
+          created_at?: string
+        }
+        Relationships: [
+           {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       faqs: {
         Row: {
@@ -139,6 +197,9 @@ export interface Database {
           position: string
           photo_url: string | null
           created_at: string
+          is_member_of_the_month: boolean
+          motm_bio: string | null
+          division_id: string | null
         }
         Insert: {
           id?: string
@@ -146,6 +207,9 @@ export interface Database {
           position: string
           photo_url?: string | null
           created_at?: string
+          is_member_of_the_month?: boolean
+          motm_bio?: string | null
+          division_id?: string | null
         }
         Update: {
           id?: string
@@ -153,8 +217,18 @@ export interface Database {
           position?: string
           photo_url?: string | null
           created_at?: string
+          is_member_of_the_month?: boolean
+          motm_bio?: string | null
+          division_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "members_division_id_fkey"
+            columns: ["division_id"]
+            referencedRelation: "divisions"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       posts: {
         Row: {
@@ -206,14 +280,23 @@ export interface Database {
           image_url?: string | null
           title: string
         }
-        Update: {
-          created_at?: string
-          date?: string
-          description?: string
-          id?: string
-          image_url?: string | null
-          title?: string
-        }
+        Update:
+          | {
+              created_at?: string
+              date?: string
+              description?: string
+              id?: string
+              image_url?: string | null
+              title?: string
+            }
+          | {
+              created_at?: string
+              date?: string
+              description?: string
+              id?: string
+              image_url?: string | null
+              title?: string
+            }
         Relationships: []
       }
       polls: {
@@ -350,7 +433,8 @@ export type Post = Database['public']['Tables']['posts']['Row'];
 export type Program = Database['public']['Tables']['programs']['Row'];
 export type GalleryImage = Database['public']['Tables']['gallery_images']['Row'];
 export type Event = Database['public']['Tables']['events']['Row'];
-export type Member = Database['public']['Tables']['members']['Row'];
+export type Division = Database['public']['Tables']['divisions']['Row'];
+export type Member = Database['public']['Tables']['members']['Row'] & { divisions?: Division | null };
 export type Feedback = Database['public']['Tables']['feedback']['Row'];
 export type Document = Database['public']['Tables']['documents']['Row'];
 export type Faq = Database['public']['Tables']['faqs']['Row'];
@@ -358,3 +442,4 @@ export type Poll = Database['public']['Tables']['polls']['Row'] & { poll_options
 export type PollOption = Database['public']['Tables']['poll_options']['Row'];
 export type SiteSetting = Database['public']['Tables']['site_settings']['Row'];
 export type Testimonial = Database['public']['Tables']['testimonials']['Row'];
+export type EventRegistration = Database['public']['Tables']['event_registrations']['Row'];

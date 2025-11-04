@@ -2,6 +2,29 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabase';
 import type { Document } from '../../types';
 import Spinner from '../../components/Spinner';
+import { useNotification } from '../../App';
+
+const ConfirmationModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+}> = ({ isOpen, onClose, onConfirm, title, message }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <h2 className="text-xl font-bold mb-4">{title}</h2>
+                <p className="text-gray-600 mb-6">{message}</p>
+                <div className="flex justify-end gap-4">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Batal</button>
+                    <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Konfirmasi</button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ManageDocumentsPage: React.FC = () => {
     const [documents, setDocuments] = useState<Document[]>([]);
@@ -10,14 +33,17 @@ const ManageDocumentsPage: React.FC = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [docToDelete, setDocToDelete] = useState<{ id: string, fileUrl: string } | null>(null);
+    const { addNotification } = useNotification();
 
     const fetchDocuments = useCallback(async () => {
         setLoading(true);
         const { data, error } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
         if (data) setDocuments(data);
-        if (error) console.error("Error fetching documents:", error);
+        if (error) addNotification(`Error fetching documents: ${error.message}`, 'error');
         setLoading(false);
-    }, []);
+    }, [addNotification]);
 
     useEffect(() => {
         fetchDocuments();
@@ -26,7 +52,7 @@ const ManageDocumentsPage: React.FC = () => {
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!file) {
-            alert('Silakan pilih file untuk diunggah.');
+            addNotification('Silakan pilih file untuk diunggah.', 'error');
             return;
         }
         setUploading(true);
@@ -35,7 +61,7 @@ const ManageDocumentsPage: React.FC = () => {
         const { data: uploadData, error: uploadError } = await supabase.storage.from('documents').upload(fileName, file);
 
         if (uploadError) {
-            alert('Gagal mengunggah file: ' + uploadError.message);
+            addNotification(`Gagal mengunggah file: ${uploadError.message}`, 'error');
             setUploading(false);
             return;
         }
@@ -49,8 +75,9 @@ const ManageDocumentsPage: React.FC = () => {
         });
 
         if (insertError) {
-            alert('Gagal menyimpan data dokumen: ' + insertError.message);
+            addNotification(`Gagal menyimpan data dokumen: ${insertError.message}`, 'error');
         } else {
+            addNotification('Dokumen berhasil diunggah!', 'success');
             setTitle('');
             setDescription('');
             setFile(null);
@@ -60,26 +87,41 @@ const ManageDocumentsPage: React.FC = () => {
         setUploading(false);
     };
 
-    const handleDelete = async (id: string, fileUrl: string) => {
-        if (window.confirm('Anda yakin ingin menghapus dokumen ini?')) {
-            // Delete file from storage
-            const fileName = fileUrl.split('/').pop();
-            if (fileName) {
-                const { error: storageError } = await supabase.storage.from('documents').remove([fileName]);
-                if (storageError) {
-                    alert('Gagal menghapus file dari storage: ' + storageError.message);
-                }
+    const handleDeleteClick = (id: string, fileUrl: string) => {
+        setDocToDelete({ id, fileUrl });
+        setIsModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!docToDelete) return;
+
+        const fileName = docToDelete.fileUrl.split('/').pop();
+        if (fileName) {
+            const { error: storageError } = await supabase.storage.from('documents').remove([fileName]);
+            if (storageError) {
+                 addNotification(`Gagal menghapus file dari storage: ${storageError.message}`, 'error');
             }
-            
-            // Delete record from table
-            const { error: dbError } = await supabase.from('documents').delete().eq('id', id);
-            if (dbError) alert('Gagal menghapus dokumen dari database: ' + dbError.message);
-            else fetchDocuments();
         }
+        
+        const { error: dbError } = await supabase.from('documents').delete().eq('id', docToDelete.id);
+        if (dbError) addNotification(`Gagal menghapus dokumen: ${dbError.message}`, 'error');
+        else {
+            addNotification('Dokumen berhasil dihapus!', 'success');
+            fetchDocuments();
+        }
+        setIsModalOpen(false);
+        setDocToDelete(null);
     };
 
     return (
         <div>
+             <ConfirmationModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="Konfirmasi Hapus"
+                message="Apakah Anda yakin ingin menghapus dokumen ini? Tindakan ini tidak dapat diurungkan."
+            />
             <h1 className="text-3xl font-bold mb-6">Manage Dokumen</h1>
             
             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -120,7 +162,7 @@ const ManageDocumentsPage: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(doc.created_at).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-green-600 hover:text-green-900 mr-4">Lihat</a>
-                                        <button onClick={() => handleDelete(doc.id, doc.file_url)} className="text-red-600 hover:text-red-900">Hapus</button>
+                                        <button onClick={() => handleDeleteClick(doc.id, doc.file_url)} className="text-red-600 hover:text-red-900">Hapus</button>
                                     </td>
                                 </tr>
                             ))}

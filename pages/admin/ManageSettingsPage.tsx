@@ -52,15 +52,14 @@ const ManageSettingsPage: React.FC = () => {
         setTimeout(() => setNotification(''), 3000);
     };
 
-    // FIX: Rewrote reduce logic to be more explicit for better type inference.
-    const groupedSettings = settings.reduce((acc, setting) => {
-        const groupKey = setting.group;
-        if (!acc[groupKey]) {
-            acc[groupKey] = [];
+    // FIX: The previous reduce logic was causing type inference issues. Replaced with a for...of loop for robust grouping.
+    const groupedSettings: Record<string, SiteSetting[]> = {};
+    for (const setting of settings) {
+        if (!groupedSettings[setting.group]) {
+            groupedSettings[setting.group] = [];
         }
-        acc[groupKey].push(setting);
-        return acc;
-    }, {} as Record<string, SiteSetting[]>);
+        groupedSettings[setting.group].push(setting);
+    }
 
     return (
         <div>

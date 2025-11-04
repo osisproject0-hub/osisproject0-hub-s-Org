@@ -3,6 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import type { Post } from '../../types';
 import Spinner from '../../components/Spinner';
+import showdown from 'showdown';
+
+const converter = new showdown.Converter();
+converter.setOption('noHeaderId', true);
+converter.setOption('simplifiedAutoLink', true);
 
 const BlogPostPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -82,9 +87,10 @@ const BlogPostPage: React.FC = () => {
                         className="w-full h-auto max-h-[500px] object-cover rounded-lg shadow-lg mb-8"
                     />
 
-                    <div className="prose prose-lg max-w-none text-gray-800" style={{ whiteSpace: 'pre-wrap' }}>
-                        {post.content}
-                    </div>
+                    <div 
+                      className="prose prose-lg max-w-none text-gray-800" 
+                      dangerouslySetInnerHTML={{ __html: converter.makeHtml(post.content) }}
+                    />
                 </article>
             </div>
         </div>

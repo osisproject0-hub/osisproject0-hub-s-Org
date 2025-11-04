@@ -1,7 +1,96 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../services/supabase';
 import { Link } from 'react-router-dom';
 import type { Feedback } from '../../types';
+// @ts-ignore
+import type { Chart } from 'chart.js';
+
+const FeedbackChart: React.FC = () => {
+    const chartRef = useRef<HTMLCanvasElement | null>(null);
+    const chartInstance = useRef<Chart | null>(null);
+
+    useEffect(() => {
+        const fetchFeedbackData = async () => {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const { data, error } = await supabase
+                .from('feedback')
+                .select('created_at')
+                .gte('created_at', sevenDaysAgo.toISOString());
+
+            if (error || !data) {
+                console.error("Error fetching feedback for chart:", error);
+                return;
+            }
+
+            const counts = Array(7).fill(0);
+            const labels = Array(7).fill('').map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                return d.toLocaleDateString('id-ID', { weekday: 'short' });
+            }).reverse();
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            data.forEach(item => {
+                const itemDate = new Date(item.created_at);
+                itemDate.setHours(0, 0, 0, 0);
+                const diffDays = Math.floor((today.getTime() - itemDate.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDays >= 0 && diffDays < 7) {
+                    counts[6 - diffDays]++;
+                }
+            });
+            
+            if (chartRef.current) {
+                 if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+                const ctx = chartRef.current.getContext('2d');
+                if (ctx) {
+                    // @ts-ignore
+                    chartInstance.current = new window.Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: 'Feedback Masuk',
+                                data: counts,
+                                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        };
+
+        fetchFeedbackData();
+
+        return () => {
+            if (chartInstance.current) {
+                chartInstance.current.destroy();
+            }
+        };
+    }, []);
+
+    return <canvas ref={chartRef}></canvas>;
+}
+
 
 const DashboardPage: React.FC = () => {
     const [counts, setCounts] = useState({ posts: 0, programs: 0, images: 0, members: 0, feedback: 0, documents: 0, faqs: 0, polls: 0 });
@@ -64,12 +153,14 @@ const DashboardPage: React.FC = () => {
                 <StatCard icon="fa-poll" label="Polling Aktif" value={counts.polls} color="bg-teal-100 text-teal-500" />
                 <StatCard icon="fa-inbox" label="Feedback Baru" value={counts.feedback} color="bg-red-100 text-red-500" />
             </div>
-            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-semibold text-gray-800">Selamat Datang di Panel Admin</h2>
-                    <p className="mt-2 text-gray-600">Gunakan menu di samping untuk mengelola konten website OSIS SMK LPPMRI 2 Kedungreja. Anda dapat menambah, mengubah, dan menghapus berita, program kerja, dan foto galeri.</p>
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow-md">
+                     <h2 className="text-xl font-semibold text-gray-800 mb-4">Feedback 7 Hari Terakhir</h2>
+                     <div className="relative h-64">
+                        <FeedbackChart />
+                     </div>
                 </div>
-                 <div className="bg-white p-6 rounded-lg shadow-md">
+                 <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
                     <h2 className="text-xl font-semibold text-gray-800">Feedback Terbaru</h2>
                     {loading ? <p className="text-gray-600 mt-2">Memuat...</p> : latestFeedback.length > 0 ? (
                         <ul className="mt-2 space-y-3">
